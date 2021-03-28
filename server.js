@@ -25,7 +25,7 @@ function handleLocationrequest(req,res){
     let newLocation= new Location(city,locationDataSource[0]);
     
     res.send(newLocation);
-    errorMsg(response,newLocation);
+   
     
 
 }
