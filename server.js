@@ -21,7 +21,7 @@ const PARK_API_KEY=process.env.PARK_API_KEY;
 //routes
 app.get('/location', handleLocationrequest);
 app.get('/weather', handleWeatherrequest);
-app.get('parks',handleParkRequest)
+app.get('/parks',handleParkRequest)
 app.use('*', notFoundHandler);
 
 
@@ -30,12 +30,7 @@ function handleLocationrequest(request, response) {
     console.log('ddddddddddd')
     const url = `https://us1.locationiq.com/v1/search.php?key=${GEO_CODE_API_KEY}&q=${city}&format=json`;
 
-    const cityQueryParam = {
-        key: GEO_CODE_API_KEY,
-        city: city,
-        format: 'json'
-    };
-
+    
     superagent.get(url).then(resData => {
         const location = new Location(city, resData.body[0])
         response.status(200).send(location);
@@ -53,10 +48,10 @@ function handleLocationrequest(request, response) {
 
 function handleWeatherrequest(request, response) {
     const weatherArray = [];
-    const city =request.query.search_query;
+    const city =request.query.city;
     const longitude = request.query.longitude;
     const latitude = request.query.latitude;
-    const url=`https://api.weatherbit.io/v2.0/forecast/daily?city=${city}&lat=${latitude}&lon=${longitude}&key=${WEATHER_API_KEY}`;
+    const url=`https://api.weatherbit.io/v2.0/forecast/daily?&lat=${latitude}&lon=${longitude}&key=${WEATHER_API_KEY}`;
     superagent.get(url).then(resData => {
         weatherArray = resData.body.data.map((value, index) => {
           return (new Weather(value));
@@ -85,10 +80,10 @@ function Weather(weatherDescription, expectedDate) {
 }
 function Parks(data){
     this.name=data.name;
-    this.fee=data.fee;
+    this.fee=data.fees||'0.00';
     this.description=data.description;
     this.url=data.url;
-    this.address=data.address;
+    this.address=data.addresses;
 
 }
 
