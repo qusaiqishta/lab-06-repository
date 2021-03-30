@@ -5,7 +5,7 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
-
+const pg = require('pg');
 const superagent = require('superagent');
 
 const PORT = process.env.PORT;
@@ -14,6 +14,12 @@ app.use(cors());
 const GEO_CODE_API_KEY = process.env.GEO_CODE_API_KEY;
 const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
 const PARK_API_KEY=process.env.PARK_API_KEY;
+const DATABASE_URL = process.env.DATABASE_URL;
+
+
+
+// Database Connection Setup
+const client = new pg.Client(DATABASE_URL);
 
 
 
@@ -23,6 +29,8 @@ app.get('/location', handleLocationrequest);
 app.get('/weather', handleWeatherrequest);
 app.get('/parks',handleParkRequest)
 app.use('*', notFoundHandler);
+app.get('/add',LocationDatabase);
+app.get('/country',selectcountries);
 
 
 function handleLocationrequest(request, response) {
@@ -87,6 +95,28 @@ function Parks(data){
 
 }
 
+function LocationDatabase(request,response){
+    const{ formatted_query,latitude,longitude,search_query}=request.query;
+    let sqlQuery= 'INSERT INTO locations VALUES ($1,$2,$3,$4) ';
+    let safeValues = [location.search_query, location.formatted_query, location.latitude, location.longitude];
+    client.query(sqlQuery, safeValues).then(result => {
+
+        res.status(200).json(result);
+      }).catch(error => {
+        console.log(error);
+        res.status(500).send('Internal server error');
+      });
+}
+function selectcountries(req, res) {
+    const sqlQuery = `SELECT * FROM location`;
+  
+    client.query(sqlQuery).then(result => {
+      res.status(200).json(result.rows);
+    }).catch(error => {
+      console.log(error);
+      res.status(500).send('Internal server error');
+    });
+  }
 
 function handleParkRequest(request,response){
     const parks=[];
@@ -118,7 +148,12 @@ function errorMsg(response, data) {
 app.use('*', (req, res) => {
     res.status(404).send('The Route not found');
 });
-app.listen(PORT, () => console.log(`Listening to Port ${PORT}`));
+client.connect().then(() => {
+    app.listen(PORT, () => {
+      console.log("Connected to database:", client.connectionParameters.database) //show what database we connected to
+      console.log('Server up on', PORT);
+    });
+  })
 
 
 
