@@ -14,7 +14,7 @@ app.use(cors());
   
 
 
-
+//routes
 app.get('/location',handleLocationrequest);
 app.get('/weather',handleWeatherrequest);
 
