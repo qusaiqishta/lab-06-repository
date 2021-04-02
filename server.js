@@ -24,7 +24,8 @@ function handleLocationrequest(req,res){
     const locationDataSource=require('./data/location.json');
     let newLocation= new Location(city,locationDataSource[0]);
     
-    res.send(newLocation);
+    res.json(newLocation);
+    errorMsg(res,newLocation);
    
     
 
@@ -33,13 +34,14 @@ function handleLocationrequest(req,res){
 function handleWeatherrequest(req,res){
     const weatherSource=require('./data/weather.json');
     const weatherArray=[];
-    weatherSource.data.forEach(element => {
-        let weatherDescription=weatherSource.weather.description;
-        let expectedDate=weatherSource.datetime;
-        console.log(expectedDate);
-        weatherArray.push(new Weather(weatherDescription,expectedDate));
+    weatherSource.data.forEach(weatherSource => {
+        let description=weatherSource.weather.description;
+        let datetime=weatherSource.datetime;
+        weatherArray.push(new Weather(description,datetime));
         
     });
+    res.json(weatherArray);
+    errorMsg(res,weatherArray);
    
 
 }
@@ -53,9 +55,9 @@ function Location(city,data){
     
 }
 
-function Weather(weatherDescription,expectedDate){
-    this.weatherDescription=weatherDescription;
-    this.expectedDate=expectedDate;
+function Weather(description,datetime){
+    this.forecast = description;
+    this.dateTime = datetime;
     
 }
 function errorMsg(response,data){
