@@ -23,44 +23,22 @@ const YELP_API_KEY = process.env.YELP_API_KEY;
 // Database Connection Setup
 const client = new pg.Client({
   connectionString: DATABASE_URL,
-  ssl: {
+  /*ssl: {
     rejectUnauthorized: false
-  }
+  }*/
 });
 
 
 
 //routes
-app.get('/location', handleLocationrequest);
+app.get('/location', LocationDatabase);
 app.get('/weather', handleWeatherrequest);
 app.get('/parks',handleParkRequest)
 app.use('*', notFoundHandler);
-app.get('/add',LocationDatabase);
-app.get('/country',selectcountries);
 app.get('/movies', handleMoviesRequest);
 app.get('/yelp',handleYelpRequest);
 
 
-function handleLocationrequest(request, response) {
-    const city = request.query.city;
-    console.log('ddddddddddd')
-    const url = `https://us1.locationiq.com/v1/search.php?key=${GEO_CODE_API_KEY}&q=${city}&format=json`;
-
-    
-    superagent.get(url).then(resData => {
-        const location = new Location(city, resData.body[0])
-        response.status(200).send(location);
-        }).catch((error) => {
-            console.log('ERROR', error);
-            response.status(500).send('Sorry, something went wrong');
-        });
-    
-    
-        if (!city) {
-            response.status(404).send('no search query was provided');
-        }
-
-    }
 
 function handleWeatherrequest(request, response) {
     const weatherArray = [];
@@ -72,6 +50,7 @@ function handleWeatherrequest(request, response) {
         weatherArray = resData.body.data.map((value, index) => {
           return (new Weather(value));
         });
+        response.json(weatherArray);
       }).catch(() => {
           response.status(500).send('Something Went Wrong');
         })
@@ -86,6 +65,7 @@ function handleWeatherrequest(request, response) {
         let newMovie=new Movies(value);
         return newMovie;
       })
+      response.json(movies);
     }).catch(()=>{
       response.status(500).send('something went wrong');
     })
@@ -107,6 +87,7 @@ function handleWeatherrequest(request, response) {
          let newYelp=new Yelp(value);
          return newYelp;
        })
+       response.json(yelp);
      }).catch(()=>{
        response.status(500).send('something went wrong')
      })
@@ -159,27 +140,29 @@ function Yelp(data){
 }
 
 function LocationDatabase(request,response){
-    const{ formatted_query,latitude,longitude,search_query}=request.query;
-    let sqlQuery= 'INSERT INTO location VALUES ($1,$2,$3,$4) ';
-    let safeValues = [location.search_query, location.formatted_query, location.latitude, location.longitude];
-    client.query(sqlQuery, safeValues).then(result => {
-
-        res.status(200).json(result);
-      }).catch(error => {
-        console.log(error);
-        res.status(500).send('Internal server error');
-      });
+  const city = request.query.city;
+  let selectLocation = 'SELECT * FROM location WHERE search_query = $1;';
+  let safeValuesSelect = [city];
+  client.query(selectLocation, safeValuesSelect).then(result => {
+    if (result.rows.length > 0) {
+      response.status(200).json(result.rows);
+    }
+    else {
+      const url = `https://us1.locationiq.com/v1/search.php?key=${GEO_CODE_API_KEY}&q=${city}&format=json`;
+      superagent.get(url).then(data => {
+      let location = new Location(city, data.body[0]);
+        const newLocation = 'INSERT INTO location (search_query, formatted_query, latitude, longitude) VALUES ($1, $2, $3, $4);';
+        const safeValuesInsert = [city, location.formatted_query, location.latitude, location.longitude];
+        client.query(newLocation, safeValuesInsert).then(result => {
+          response.status(200).json(location);
+        }).catch(() => {
+          response.status(500).send('Something Went Wrong');
+        })
+      })
+    }
+  })
 }
-function selectcountries(req, res) {
-    const sqlQuery = `SELECT * FROM location`;
-  
-    client.query(sqlQuery).then(result => {
-      res.status(200).json(result.rows);
-    }).catch(error => {
-      console.log(error);
-      res.status(500).send('Internal server error');
-    });
-  }
+
 
 function handleParkRequest(request,response){
     const parks=[];
@@ -191,6 +174,7 @@ superagent.get(url).then(resData => {
     parks = resData.body.data.map((value, index) => {
       return (new Parks(value));
     });
+    response.json(parks);
   }).catch(() => {
       response.status(500).send('Something Went Wrong');
     })
