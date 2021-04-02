@@ -2,6 +2,7 @@
 
 require('dotenv').config();
 
+
 const express = require('express');
 const cors = require('cors');
 const pg = require('pg');
@@ -14,15 +15,19 @@ const GEO_CODE_API_KEY = process.env.GEO_CODE_API_KEY;
 const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
 const PARK_API_KEY=process.env.PARK_API_KEY;
 const DATABASE_URL = process.env.DATABASE_URL;
+const MOVIE_API_KEY = process.env.MOVIE_API_KEY;
+const YELP_API_KEY = process.env.YELP_API_KEY;
+
 
 
 // Database Connection Setup
 const client = new pg.Client({
   connectionString: DATABASE_URL,
-  ssl: {
+  /*ssl: {
     rejectUnauthorized: false
-  }
+  }*/
 });
+
 
 
 //routes
@@ -30,11 +35,13 @@ app.get('/location', LocationDatabase);
 app.get('/weather', handleWeatherrequest);
 app.get('/parks',handleParkRequest)
 app.use('*', notFoundHandler);
+app.get('/movies', handleMoviesRequest);
+app.get('/yelp',handleYelpRequest);
 
 
 
 function handleWeatherrequest(request, response) {
-    let weatherArray = [];
+    const weatherArray = [];
     const city =request.query.city;
     const longitude = request.query.longitude;
     const latitude = request.query.latitude;
@@ -49,6 +56,45 @@ function handleWeatherrequest(request, response) {
         })
   }
 
+  function handleMoviesRequest(request,response){
+    const city=request.query.search_query;
+    const url=`https://api.themoviedb.org/3/movie/550?api_key=${MOVIE_API_KEY}&city=${city}`
+    let movies=[];
+    superagent.get(url).then(resData=>{
+      movies=resData.body.data.map((value,index)=>{
+        let newMovie=new Movies(value);
+        return newMovie;
+      })
+      response.json(movies);
+    }).catch(()=>{
+      response.status(500).send('something went wrong');
+    })
+  }
+
+  function handleYelpRequest(request,response){
+    const page=request.query.search_query;
+    const startPage=(page-1);
+    const url='https://api.yelp.com/v3/businesses/search';
+    const queryParams = {
+      latitude: request.query.latitude,
+      longitude: request.query.longitude,
+      offset:startPage,
+      limit: 20 
+     };
+     let yelp=[];
+     superagent.get(url).set(YELP_API_KEY).query(queryParams).then(resData=>{
+       yelp=resData.body.data.map((value,index)=>{
+         let newYelp=new Yelp(value);
+         return newYelp;
+       })
+       response.json(yelp);
+     }).catch(()=>{
+       response.status(500).send('something went wrong')
+     })
+
+  }
+
+
 
 
 
@@ -60,10 +106,10 @@ function Location(city, data) {
 
 }
 
+function Weather(weatherDescription, expectedDate) {
+    this.weatherDescription = weatherDescription;
+    this.expectedDate = expectedDate;
 
-function Weather(value) {
-  this.forecast = value.weather.description;
-  this.dateTime = value.dateTime;
 }
 function Parks(data){
     this.name=data.name;
@@ -72,6 +118,25 @@ function Parks(data){
     this.url=data.url;
     this.address=data.addresses;
 
+}
+
+function Movies(data){
+  this.title=data.title;
+  this.overview=data.overview;
+  this.average_votes=data.average_votes;
+  this.total_votes=data.total_votes;
+  this.image_url=data.image_url;
+  this.popularity=data.popularity;
+  this.released_on=data.released_on;
+
+}
+
+function Yelp(data){
+  this.name=data.name;
+  this.image_url=data.image_url;
+  this.price=data.price;
+  this.rating=data.rating;
+  this.url=data.url;
 }
 
 function LocationDatabase(request,response){
@@ -100,7 +165,7 @@ function LocationDatabase(request,response){
 
 
 function handleParkRequest(request,response){
-    let parks=[];
+    const parks=[];
 
     const longitude = request.query.longitude;
     const latitude = request.query.latitude;
@@ -116,6 +181,7 @@ superagent.get(url).then(resData => {
 }
 
 
+
 function errorMsg(response, data) {
     if (response.status == 200) {
         response.status(200).send(data);
@@ -124,6 +190,7 @@ function errorMsg(response, data) {
         response.status(500).send('error entering , try again')
     }
 }
+
 
 app.use('*', (req, res) => {
     res.status(404).send('The Route not found');
@@ -136,7 +203,7 @@ client.connect().then(() => {
   })
 
 
+
 function notFoundHandler(request, response) {
     response.status(404).send('huh?');
 }
-
