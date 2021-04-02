@@ -21,7 +21,7 @@ const PARK_API_KEY=process.env.PARK_API_KEY;
 //routes
 app.get('/location', handleLocationrequest);
 app.get('/weather', handleWeatherrequest);
-app.get('parks',handleParkRequest)
+app.get('/parks',handleParkRequest)
 app.use('*', notFoundHandler);
 
 
@@ -37,10 +37,10 @@ function handleLocationrequest(request, response) {
     };
 
     superagent.get(url).then(resData => {
-        const location = new Location(city, resData.body[0])
+        let location = new Location(city, resData.body[0])
         response.status(200).send(location);
         }).catch((error) => {
-            console.log('ERROR', error);
+            
             response.status(500).send('Sorry, something went wrong');
         });
     
@@ -52,15 +52,16 @@ function handleLocationrequest(request, response) {
     }
 
 function handleWeatherrequest(request, response) {
-    const weatherArray = [];
+    let weatherArray = [];
     const city =request.query.search_query;
     const longitude = request.query.longitude;
     const latitude = request.query.latitude;
-    const url=`https://api.weatherbit.io/v2.0/forecast/daily?city=${city}&lat=${latitude}&lon=${longitude}&key=${WEATHER_API_KEY}`;
+    const url=`https://api.weatherbit.io/v2.0/forecast/daily?&lat=${latitude}&lon=${longitude}&key=${WEATHER_API_KEY}`;
     superagent.get(url).then(resData => {
         weatherArray = resData.body.data.map((value, index) => {
           return (new Weather(value));
         });
+        response.json(weatherArray);
       }).catch(() => {
           response.status(500).send('Something Went Wrong');
         })
@@ -78,10 +79,10 @@ function Location(city, data) {
 
 }
 
-function Weather(weatherDescription, expectedDate) {
-    this.weatherDescription = weatherDescription;
-    this.expectedDate = expectedDate;
 
+function Weather(value) {
+    this.forecast = value.weather.description;
+    this.dateTime = value.dateTime;
 }
 function Parks(data){
     this.name=data.name;
