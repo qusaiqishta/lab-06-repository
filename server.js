@@ -2,7 +2,6 @@
 
 require('dotenv').config();
 
-
 const express = require('express');
 const cors = require('cors');
 
@@ -17,13 +16,11 @@ const PARK_API_KEY=process.env.PARK_API_KEY;
 
 
 
-
 //routes
 app.get('/location', handleLocationrequest);
 app.get('/weather', handleWeatherrequest);
 app.get('/parks',handleParkRequest)
 app.use('*', notFoundHandler);
-
 
 function handleLocationrequest(request, response) {
     const city = request.query.city;
@@ -70,7 +67,6 @@ function handleWeatherrequest(request, response) {
 
 
 
-
 function Location(city, data) {
     this.formatted_query = data.display_name;
     this.latitude = data.lat;
@@ -78,7 +74,6 @@ function Location(city, data) {
     this.search_query = city;
 
 }
-
 
 function Weather(value) {
     this.forecast = value.weather.description;
@@ -92,7 +87,6 @@ function Parks(data){
     this.address=data.address;
 
 }
-
 
 function handleParkRequest(request,response){
     let parks=[];
@@ -111,7 +105,6 @@ superagent.get(url).then(resData => {
 }
 
 
-
 function errorMsg(response, data) {
     if (response.status == 200) {
         response.status(200).send(data);
@@ -121,14 +114,13 @@ function errorMsg(response, data) {
     }
 }
 
-
 app.use('*', (req, res) => {
     res.status(404).send('The Route not found');
 });
 app.listen(PORT, () => console.log(`Listening to Port ${PORT}`));
 
 
-
 function notFoundHandler(request, response) {
     response.status(404).send('huh?');
 }
+
