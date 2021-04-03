@@ -95,17 +95,18 @@ function Parks(data){
 
 
 function handleParkRequest(request,response){
-    const parks=[];
+    let parks=[];
 
-    const longitude = request.query.longitude;
+    const city = request.query.search_query;
     const latitude = request.query.latitude;
-const url=`https://developer.nps.gov/api/v1/parks?parkCode=acad&api_key=${PARK_API_KEY}`;
+const url=`https://developer.nps.gov/api/v1/parks?q=${city}&api_key=${PARK_API_KEY}`;
 superagent.get(url).then(resData => {
     parks = resData.body.data.map((value, index) => {
       return (new Parks(value));
     });
-  }).catch(() => {
-      response.status(500).send('Something Went Wrong');
+    response.json(parks);
+  }).catch((err) => {
+      response.status(500).send(err);
     })
 }
 
